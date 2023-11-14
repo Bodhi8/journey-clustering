@@ -1,0 +1,27 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, when, concat
+from pyspark.sql.types import IntegerType
+from pyspark.ml.feature import StringIndexer
+
+# Initialize Spark session
+spark = SparkSession.builder.appName("user_journey_analysis").getOrCreate()
+
+# Read your data
+# Replace 'your_data.csv' with the path to your file
+df = spark.read.csv("/FileStore/tables/your_data.csv", header=True, inferSchema=True)
+
+# Featurize the user journey
+df = df.withColumn('journey', concat(col('user session'), col('page 1'), col('page 2')))
+indexer = StringIndexer(inputCol='journey', outputCol='journeyIndex')
+df = indexer.fit(df).transform(df)
+
+# Convert quantities to binary
+df = df.withColumn('conversion', when(col('quantities purchased').isNull(), 0).otherwise(1))
+
+# Analyze the results
+grouped = df.groupBy('journeyIndex').sum('conversion').withColumnRenamed('sum(conversion)', 'total_conversions')
+
+# Sort by the number of conversions
+grouped = grouped.orderBy('total_conversions', ascending=False)
+
+grouped.show()
