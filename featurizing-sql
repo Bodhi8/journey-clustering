@@ -1,0 +1,16 @@
+-- Create a new table from Clickstream_table with the required transformations
+
+CREATE TABLE journey_data AS
+SELECT
+    SessionID,
+    Datetime,
+    Page1,
+    Page2,
+    Page3,
+    CASE 
+        WHEN Quantities IS NULL THEN 0 
+        ELSE 1 
+    END AS Conversion,
+    DENSE_RANK() OVER (ORDER BY Page1, Page2, Page3) AS JourneyID
+FROM
+    Clickstream_table;
