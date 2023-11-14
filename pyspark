@@ -1,0 +1,59 @@
+from pyspark.sql import SparkSession
+from pyspark.ml.feature import VectorAssembler, PCA
+from pyspark.ml.clustering import KMeans
+from pyspark.ml.linalg import Vectors
+from pyspark.ml.feature import MinMaxScaler
+
+# Initialize Spark session
+spark = SparkSession.builder.appName("CustomerJourneyClustering").getOrCreate()
+
+# Step 1: Reducing the Dimensions of the Customer Journey Dataset
+def reduce_dimensions(df, input_cols):
+    # Assuming 'df' is a Spark DataFrame with customer journey information
+    assembler = VectorAssembler(inputCols=input_cols, outputCol="features")
+    assembled_data = assembler.transform(df)
+
+    # Normalize the data
+    scaler = MinMaxScaler(inputCol="features", outputCol="scaledFeatures")
+    scaler_model = scaler.fit(assembled_data)
+    scaled_data = scaler_model.transform(assembled_data)
+
+    # Apply PCA for dimensionality reduction
+    pca = PCA(k=3, inputCol="scaledFeatures", outputCol="pcaFeatures")  # Retain top 3 principal components
+    pca_model = pca.fit(scaled_data)
+    result = pca_model.transform(scaled_data)
+    return result
+
+# Step 2: Creating Image-Like Representations of Customer Journeys
+# In PySpark, this step would typically involve restructuring the data into a format suitable for clustering
+# This could involve grouping, pivoting, or other DataFrame transformations depending on your specific data structure
+
+# Step 3: Clustering Customer Journey "Images"
+def cluster_journeys(df):
+    # Apply KMeans clustering
+    kmeans = KMeans(featuresCol="pcaFeatures", predictionCol="cluster", k=5)  # Set the number of clusters as needed
+    model = kmeans.fit(df)
+    predictions = model.transform(df)
+    return predictions
+
+# Example usage
+# Load your data
+df = spark.read.csv('customer_journey_data.csv', header=True, inferSchema=True)  # Replace with your data source
+
+# Define input columns
+input_cols = ['feature1', 'feature2', 'feature3']  # Replace with actual feature names
+
+# Step 1: Dimensionality Reduction
+reduced_data = reduce_dimensions(df, input_cols)
+
+# Step 2: Image Representation (custom transformations based on your data)
+# This step is dependent on your specific data structure
+
+# Step 3: Clustering
+journey_clusters = cluster_journeys(reduced_data)
+
+# Show the result
+journey_clusters.show()
+
+# Stop Spark session
+spark.stop()
