@@ -1,0 +1,19 @@
+import pandas as pd
+
+# Replace 'your_data.csv' with the path to your CSV file
+df = pd.read_csv('your_data.csv')
+
+# Featurize the user journey
+df['journey'] = df['user session'].astype(str) + '_' + df['page 1'].astype(str) + '_' + df['page 2'].astype(str)
+df['journey'], _ = pd.factorize(df['journey'])
+
+# Convert quantities to binary
+df['conversion'] = df['quantities purchased'].notnull().astype(int)
+
+# Analyze the results
+grouped = df.groupby('journey')['conversion'].sum().reset_index()
+
+# Sort by the number of conversions to see the most successful journeys
+grouped = grouped.sort_values(by='conversion', ascending=False)
+
+print(grouped)
